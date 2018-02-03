@@ -1,15 +1,18 @@
-import time
+import time,os,sys
 
 def main0(BaselineFP,OtherFPs):
-    BLSentAv,BLWdAv=average_sent_word_cost(BaselineFP)
-    print(BLSentAv);print(BLWdAv)
+ #   BLSentAv,BLWdAv=average_sent_word_cost(BaselineFP)
+  #  print(BLSentAv);print(BLWdAv)
+    BLSentAv=-39978
+    BLWdAv=-1762
     for FP in OtherFPs:
         Sents=pick_positive_distances(FP,BLSentAv,BLWdAv)
+        AllSentsCnt=len(Sents)
         Sents1=[];Sents2=[];Sents3=[];Sents4=[]
         for Sent in Sents:
-            if Sent[-1]<50000:
+            if Sent[-1]<10000:
                 Sents1.append(Sent)
-            elif Sent[-1]<70000:
+            elif Sent[-1]<50000:
                 Sents2.append(Sent)
             elif Sent[-1]<90000:
                 Sents3.append(Sent)
@@ -17,15 +20,19 @@ def main0(BaselineFP,OtherFPs):
                 Sents4.append(Sent)
         Sents=(Sents1,Sents2,Sents3,Sents4)
         for Cntr,SentSet in enumerate(Sents):
-            print('Category '+str(Cntr+1))
+            CatSentsCnt=len(SentSet)
+            print(FP)
+            print('\nCategory '+str(Cntr+1))
+            print(str(CatSentsCnt)+' or '+str(CatSentsCnt/AllSentsCnt*100)+'%')
             time.sleep(3)
-            for Sent in SentSet:
-                print(Sent)
-                time.sleep(1)
+            if Cntr==0 or Cntr==3:
+                for Cntr,Sent in enumerate(SentSet):
+                    print(Sent)
+                    time.sleep(1)
 
 def pick_positive_distances(FP,BLSentAv,BLWdAv):
     Sents=[]
-    Buffer=30000
+    Buffer=-10000
     for SentCntr,SentStat in enumerate(generate_sentstat(FP)):
         if not SentStat:
             break
@@ -69,11 +76,16 @@ def average_sent_word_cost(FP):
     
 
 def main():
-    import glob
-    FPs=glob.glob('sampledata/*.mecabc')
-    BaselineFPs=[FP for FP in FPs if 'tk' in FP][0]
-    OtherFPs=[FP for FP in FPs if 'tk' not in FP]
-    main0(BaselineFPs,OtherFPs)
+    import argparse,glob
+    Psr=argparse.ArgumentParser()
+    Psr.add_argument('-b','--baseline-fp',required=True)
+    Psr.add_argument('-t','--target-dir',required=True)
+    Args=Psr.parse_args()
+    TgtFPs=glob.glob(os.path.join(Args.target_dir,'*.mecabc'))
+    if TgtFPs and os.path.isfile(Args.baseline_fp):
+        main0(Args.baseline_fp,TgtFPs)
+    else:
+        sys.exit('either tgt or baseline fp does not exist')
 
 
 if __name__=='__main__':
