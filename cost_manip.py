@@ -1,10 +1,15 @@
 import time,os,sys
 
-def main0(BaselineFP,OtherFPs):
+def main0(OtherFPs,BaselineFP=None,BaselineValues=None):
  #   BLSentAv,BLWdAv=average_sent_word_cost(BaselineFP)
   #  print(BLSentAv);print(BLWdAv)
-    BLSentAv=-39978
-    BLWdAv=-1762
+#    BLSentAv=-39978
+ #   BLWdAv=-1762
+    if not BaselineFP and not BaselineValues:
+        sys.exit('baseline values or data must be provided')
+    if BaselineFP and BaslineValues:
+        sys.exit('not both values and data can be provided')
+    BLSentAv,BLWdAv=average_sent_word_cost(BaselineFP) if BaselineFP else BaselineValues
     for FP in OtherFPs:
         Sents=pick_positive_distances(FP,BLSentAv,BLWdAv)
         AllSentsCnt=len(Sents)
@@ -25,10 +30,11 @@ def main0(BaselineFP,OtherFPs):
             print('\nCategory '+str(Cntr+1))
             print(str(CatSentsCnt)+' or '+str(CatSentsCnt/AllSentsCnt*100)+'%')
             time.sleep(3)
-            if Cntr==0 or Cntr==3:
-                for Cntr,Sent in enumerate(SentSet):
-                    print(Sent)
-                    time.sleep(1)
+            for Cntr,Sent in enumerate(SentSet):
+                print(Sent)
+                time.sleep(0.5)
+                if Cntr>10:
+                    break
 
 def pick_positive_distances(FP,BLSentAv,BLWdAv):
     Sents=[]
@@ -45,7 +51,7 @@ def pick_positive_distances(FP,BLSentAv,BLWdAv):
                 WdCostDiff=round(WdTuple[-1]-BLWdAv,2)
                 if WdCostDiff>Buffer:
                     WdCosts.append((Cntr,WdCostDiff))
-            Sents.append((SentCntr+1,WdStrs,SentCost,WdCosts,SentCostDiff))
+            Sents.append((SentCntr+1,[(Cntr,Str) for (Cntr,Str) in enumerate(WdStrs)],SentCost,WdCosts,SentCostDiff))
         
     return Sents
             
@@ -78,14 +84,21 @@ def average_sent_word_cost(FP):
 def main():
     import argparse,glob
     Psr=argparse.ArgumentParser()
-    Psr.add_argument('-b','--baseline-fp',required=True)
+    BaselineGrp = Psr.add_mutually_exclusive_group(required=True)
+    #group.add_argument('--foo',action=.....)
+    #group.add_argument('--bar',action=.....)
+    BaselineGrp.add_argument('-b','--baseline-fp')
+    BaselineGrp.add_argument('-p','--preset-baseline',type=int,nargs='+')
     Psr.add_argument('-t','--target-dir',required=True)
     Args=Psr.parse_args()
     TgtFPs=glob.glob(os.path.join(Args.target_dir,'*.mecabc'))
-    if TgtFPs and os.path.isfile(Args.baseline_fp):
-        main0(Args.baseline_fp,TgtFPs)
+    if not TgtFPs:
+        sys.exit('target files must exist under a dir')
+    if Args.baseline_fp:
+        main0(TgtFPs,BaselineFP=Args.baseline_fp)
     else:
-        sys.exit('either tgt or baseline fp does not exist')
+        main0(TgtFPs,BaselineValues=Args.preset_baseline)
+
 
 
 if __name__=='__main__':
